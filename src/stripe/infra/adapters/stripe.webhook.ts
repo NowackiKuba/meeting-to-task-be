@@ -324,7 +324,8 @@ export class StripeWebhookService {
     invoice: Stripe.Invoice,
     statusOverride?: PaymentStatus,
   ) {
-    const subscriptionId = (invoice as any).subscription?.toString?.();
+    const subscriptionId =
+      invoice.lines.data[0].parent.subscription_item_details.subscription.toString();
     const dbSubscription = subscriptionId
       ? await this.subscriptionRepository.getByStripeId(subscriptionId)
       : null;

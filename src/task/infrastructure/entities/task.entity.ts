@@ -20,7 +20,7 @@ export type TaskEntityProps = {
 
 @Entity({ tableName: 'tasks' })
 export class TaskEntity extends BaseEntity implements TaskEntityProps {
-  @ManyToOne(() => MeetingEntity)
+  @ManyToOne(() => MeetingEntity, { deleteRule: 'cascade' })
   meeting!: MeetingEntity;
 
   @ManyToOne(() => UserEntity)
