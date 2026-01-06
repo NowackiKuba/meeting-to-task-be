@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+
+# docker compose by default will sync non-existing node_modules directory on first run
+if [ ! -d "node_modules" ] || [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
+    echo "node_modules directory is missing or empty, recreating..."
+    pnpm install --frozen-lockfile # install dependencies
+fi
+
+# Clean dist folder to remove stale compiled files
+rm -rf dist 2>/dev/null || true
+
+pnpm run start:dev # start app in dev mode

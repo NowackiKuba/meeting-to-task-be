@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Subscription Confirmed</title>
+  <!--[if mso]>
+  <style type="text/css">
+    body, table, td {font-family: 'Inter', 'Nunito Sans', Arial, sans-serif !important;}
+  </style>
+  <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; background-color: #F5F5F7; font-family: 'Inter', 'Nunito Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0; background-color: #F5F5F7;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <!-- Main Container -->
+        <table role="presentation" style="width: 100%; max-width: 600px; border-collapse: collapse; border-spacing: 0; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #4A5C7A 0%, #5A6C8A 100%);">
+              <div style="width: 64px; height: 64px; margin: 0 auto 20px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 32px;">
+                ✓
+              </div>
+              <h1 style="margin: 0; padding: 0; font-size: 28px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.5px; line-height: 1.2;">
+                Subscription Confirmed!
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 40px 30px;">
+              <p style="margin: 0 0 20px; padding: 0; font-size: 16px; line-height: 1.6; color: #25252A;">
+                Hello<%= firstName ? ` ${firstName}` : '' %>,
+              </p>
+              
+              <p style="margin: 0 0 20px; padding: 0; font-size: 16px; line-height: 1.6; color: #25252A;">
+                Great news! Your subscription is now active and you have full access to all the features in your plan.
+              </p>
+
+              <!-- Subscription Details Box -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 30px 0; background-color: #F8F9FA; border-radius: 8px; overflow: hidden;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse; border-spacing: 0;">
+                      <% if (planName) { %>
+                      <tr>
+                        <td style="padding: 0 0 12px; font-size: 14px; font-weight: 600; color: #4A5C7A; text-transform: uppercase; letter-spacing: 0.5px;">
+                          Plan
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 0 0 20px; font-size: 20px; font-weight: 600; color: #25252A;">
+                          <%= planName %>
+                        </td>
+                      </tr>
+                      <% } %>
+                      
+                      <% if (amount !== undefined) { %>
+                      <tr>
+                        <td style="padding: 0 0 8px; font-size: 14px; font-weight: 600; color: #4A5C7A; text-transform: uppercase; letter-spacing: 0.5px;">
+                          Amount
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 0 0 20px; font-size: 18px; font-weight: 600; color: #25252A;">
+                          $<%= (amount / 100).toFixed(2) %>/<%= interval || 'month' %>
+                        </td>
+                      </tr>
+                      <% } %>
+
+                      <% if (currentPeriodEnd) { %>
+                      <tr>
+                        <td style="padding: 0 0 8px; font-size: 14px; font-weight: 600; color: #4A5C7A; text-transform: uppercase; letter-spacing: 0.5px;">
+                          Next Billing Date
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 0; font-size: 16px; color: #25252A;">
+                          <%= currentPeriodEnd %>
+                        </td>
+                      </tr>
+                      <% } %>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 30px 0;">
+                <tr>
+                  <td align="center" style="padding: 0;">
+                    <a href="<%= dashboardLink || appUrl || '#' %>" style="display: inline-block; padding: 14px 32px; background-color: #4A5C7A; color: #FFFFFF; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; letter-spacing: 0.3px;">
+                      Go to Dashboard
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 20px 0 0; padding: 0; font-size: 14px; line-height: 1.5; color: #666666;">
+                You can manage your subscription, update payment methods, and access all features from your dashboard.
+              </p>
+            </td>
+          </tr>
+
+          {% comment %} <!-- Features Box (optional) -->
+          <% if (features && features.length > 0) { %>
+          <tr>
+            <td style="padding: 0 40px 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; border-spacing: 0; background-color: #F8F9FA; border-radius: 8px; padding: 24px;">
+                <tr>
+                  <td>
+                    <p style="margin: 0 0 16px; padding: 0; font-size: 16px; font-weight: 600; color: #4A5C7A;">
+                      What's Included
+                    </p>
+                    <ul style="margin: 0; padding: 0 0 0 20px; font-size: 14px; line-height: 1.8; color: #25252A;">
+                      <% features.forEach(function(feature) { %>
+                      <li style="margin: 0 0 8px; padding: 0;"><%= feature %></li>
+                      <% }); %>
+                    </ul>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <% } %> {% endcomment %}
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 30px 40px 40px; text-align: center; border-top: 1px solid #E5E7EB;">
+              <p style="margin: 0 0 12px; padding: 0; font-size: 14px; line-height: 1.5; color: #666666;">
+                Need help? <a href="<%= supportLink || 'mailto:support@mailo.com' %>" style="color: #4A5C7A; text-decoration: underline;">Contact our support team</a>
+              </p>
+              <p style="margin: 0; padding: 0; font-size: 14px; line-height: 1.5; color: #999999;">
+                © <%= new Date().getFullYear() %> <%= appName || 'Mailo' %>. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+
