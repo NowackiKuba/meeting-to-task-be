@@ -3,12 +3,15 @@ import { Token } from 'src/constant';
 import { Meeting } from '@meeting/domain/entities/meeting.entity';
 import { IMeetingRepository } from '@meeting/domain/ports/meeting.repository.port';
 import { CreateMeetingTransformed } from '../dto/create-meeting';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class CreateMeetingUseCase {
   constructor(
     @Inject(Token.MeetingRepository)
     private readonly meetingRepository: IMeetingRepository,
+    @InjectQueue('meeting-queue') private readonly meetingQueue: Queue,
   ) {}
 
   async handle(
@@ -21,6 +24,13 @@ export class CreateMeetingUseCase {
       notes: payload.notes,
       status: 'processing',
     });
-    return this.meetingRepository.create(meeting);
+    const newMeeting = this.meetingRepository.create(meeting);
+
+    await this.meetingQueue.add('process', {
+      meetingId: (await newMeeting).id,
+      userId,
+    });
+
+    return newMeeting;
   }
 }

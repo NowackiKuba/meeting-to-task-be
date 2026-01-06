@@ -1,3 +1,5 @@
+import { Task } from 'src/task/domain/entities/task.entity';
+
 export type MeetingProto = {
   id?: string;
   userId: string;
@@ -8,6 +10,7 @@ export type MeetingProto = {
   processedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
+  tasks?: Task[];
 };
 
 export type MeetingJSON = {
@@ -20,6 +23,7 @@ export type MeetingJSON = {
   processedAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
+  tasks?: Task[];
 };
 
 export class Meeting {
@@ -32,6 +36,7 @@ export class Meeting {
   private _processedAt?: Date | null;
   private readonly _createdAt?: Date;
   private readonly _updatedAt?: Date;
+  private readonly _tasks?: Task[];
 
   constructor(proto: MeetingProto) {
     this._id = proto.id;
@@ -43,6 +48,7 @@ export class Meeting {
     this._processedAt = proto.processedAt;
     this._createdAt = proto.createdAt;
     this._updatedAt = proto.updatedAt;
+    this._tasks = proto.tasks;
   }
 
   get id(): string | undefined {
@@ -71,6 +77,10 @@ export class Meeting {
 
   get errorMessage(): string | null | undefined {
     return this._errorMessage;
+  }
+
+  get tasks(): Task[] {
+    return this._tasks;
   }
 
   markCompleted(processedAt: Date = new Date()) {
@@ -102,7 +112,7 @@ export class Meeting {
       processedAt: this._processedAt,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
+      tasks: this._tasks,
     };
   }
 }
-

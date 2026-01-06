@@ -18,14 +18,7 @@ export class SubscriptionController {
 
   @Get()
   async get(@User() user: AuthUser) {
-    const subscription = await this.getSubscriptionUseCase.handle(user.id);
-    return {
-      subscription,
-      payments: await this.getUserPaymentsUseCase.handle(user.id),
-      current_tier: subscription?.tier ?? 'free',
-      meetings_used: (await this.getUsageUseCase.handle(user.id)).usedMeetings,
-      meetings_limit: (await this.getUsageUseCase.handle(user.id)).limit,
-    };
+    return await this.getSubscriptionUseCase.handle(user.id);
   }
 
   @Post('checkout')

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from 'src/config/config.service';
 import { IAiService } from 'src/shared/ai/domain/ports/ai.service.port';
 import { OpenAI } from 'openai';
+import { parseJsonWithFallback } from '../../../utils/json-parser.util';
 
 @Injectable()
 export class OpenAIService implements IAiService {
@@ -56,18 +57,19 @@ export class OpenAIService implements IAiService {
         messages: [
           {
             role: 'user',
-            content: `${processedPrompt}\n\nRespond only with a valid JSON object.`,
+            content: `${processedPrompt}\n\nIMPORTANT: Return ONLY valid JSON. Do not add extra text, markdown, or explanations. Escape all quotes properly.`,
           },
         ],
-        max_tokens: 256,
+        max_tokens: 4000, // Increased for longer responses
         response_format: { type: 'json_object' },
+        temperature: 0, // Reduce variability for more consistent JSON
       });
 
       // Extract response text from OpenAI's reply
       const aiReply = completion.choices[0]?.message?.content ?? '';
 
-      // Parse the JSON result
-      return JSON.parse(aiReply) as T;
+      // Parse the JSON result with fallback recovery
+      return parseJsonWithFallback<T>(aiReply, 3);
     } catch (error) {
       throw new Error(
         `OpenAI API error (formatted): ${error.message || error}`,

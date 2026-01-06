@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { IAiService } from 'src/shared/ai/domain/ports/ai.service.port';
 import { Anthropic } from '@anthropic-ai/sdk';
 import { ConfigService } from 'src/config/config.service';
+import { parseJsonWithFallback } from '../../../utils/json-parser.util';
 
 @Injectable()
 export class AnthropicService implements IAiService {
@@ -47,13 +48,15 @@ export class AnthropicService implements IAiService {
 
       const completion = await this.anthropic.completions.create({
         model: 'claude-3-7-sonnet-20250219',
-        prompt: processedPrompt,
-        max_tokens_to_sample: 256,
+        prompt: `${processedPrompt}\n\nIMPORTANT: Return ONLY valid JSON. Do not add extra text, markdown, or explanations. Escape all quotes properly.`,
+        max_tokens_to_sample: 4000, // Increased for longer responses
+        temperature: 0, // Reduce variability for more consistent JSON
       });
 
       const aiReply = completion.completion;
 
-      return JSON.parse(aiReply) as T;
+      // Parse the JSON result with fallback recovery
+      return parseJsonWithFallback<T>(aiReply, 3);
     } catch (error) {
       throw new Error(
         `OpenAI API error (formatted): ${error.message || error}`,

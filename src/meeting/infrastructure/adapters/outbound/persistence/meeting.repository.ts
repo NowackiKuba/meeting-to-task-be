@@ -57,10 +57,12 @@ export class MeetingRepository implements IMeetingRepository {
   ): Promise<Page<Meeting>> {
     const filters: FilterQuery<MeetingEntity> = { user: userId };
     if (opts.status) filters.status = opts.status;
+    if (opts.search) filters.$or = [{ title: `%${opts.search}%` }];
 
     const [entities, totalCount] = await this.dbSource.findAndCount(filters, {
       limit: opts.limit,
       offset: opts.offset,
+      populate: ['tasks'],
       orderBy: { createdAt: 'DESC' },
     });
 
@@ -70,4 +72,3 @@ export class MeetingRepository implements IMeetingRepository {
     );
   }
 }
-

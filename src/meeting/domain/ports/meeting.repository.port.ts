@@ -5,6 +5,7 @@ export type GetMeetingsPaginatedOptions = {
   limit: number;
   offset: number;
   status?: 'processing' | 'completed' | 'failed';
+  search?: string;
 };
 
 export interface IMeetingRepository {
@@ -12,6 +13,8 @@ export interface IMeetingRepository {
   update(meeting: Meeting): Promise<void>;
   delete(id: string): Promise<void>;
   getById(id: string): Promise<Meeting | null>;
-  getAll(opts: GetMeetingsPaginatedOptions, userId: string): Promise<Page<Meeting>>;
+  getAll(
+    opts: GetMeetingsPaginatedOptions,
+    userId: string,
+  ): Promise<Page<Meeting>>;
 }
-

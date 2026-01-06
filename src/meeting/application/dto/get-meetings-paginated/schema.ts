@@ -3,6 +3,7 @@ import { PAGE_INPUT_SCHEMA } from 'src/utils/pagination';
 
 export const GET_MEETINGS_PAGINATED_SCHEMA = PAGE_INPUT_SCHEMA.extend({
   status: z.enum(['processing', 'completed', 'failed']).optional(),
+  search: z.string().optional(),
 });
 
 export type GetMeetingsPaginatedInput = z.input<

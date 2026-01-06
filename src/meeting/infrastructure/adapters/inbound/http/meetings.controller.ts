@@ -20,6 +20,9 @@ import {
 } from '@meeting/application/use-cases';
 import { User } from '@auth/infrastructure/decorators/user.decorator';
 import { AuthUser } from '@auth/domain/interfaces/auth-user.interface';
+import { GetMeetingTasksUseCase } from 'src/task/application/use-cases';
+import { GetTasksPaginatedDto } from 'src/task/application/dto';
+import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.use-case';
 
 @Controller('meetings')
 export class MeetingsController {
@@ -29,6 +32,8 @@ export class MeetingsController {
     private readonly getMeetingsPaginated: GetMeetingsPaginatedUseCase,
     private readonly updateMeeting: UpdateMeetingUseCase,
     private readonly deleteMeeting: DeleteMeetingUseCase,
+    private readonly getMeetingTasksUseCase: GetMeetingTasksUseCase,
+    private readonly exportTasksUseCase: ExportTasksUseCase,
   ) {}
 
   @Post()
@@ -67,5 +72,25 @@ export class MeetingsController {
     meeting.markCompleted(new Date());
     await this.updateMeeting.handle({}, id);
     return meeting;
+  }
+
+  @Get('/:id/tasks')
+  async getTasks(@Param('id') id: string, @Query() opts: GetTasksPaginatedDto) {
+    return await this.getMeetingTasksUseCase.handle(id, opts);
+  }
+
+  @Post('/:id/export')
+  async export(
+    @Param('id') id: string,
+    @Query('mode') mode: 'csv' | 'json' | 'markdown',
+  ) {
+    switch (mode) {
+      case 'csv':
+        return await this.exportTasksUseCase.csv(id);
+      case 'json':
+        return await this.exportTasksUseCase.json(id);
+      case 'markdown':
+        return await this.exportTasksUseCase.markdown(id);
+    }
   }
 }
