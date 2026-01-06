@@ -57,7 +57,12 @@ export class MeetingRepository implements IMeetingRepository {
   ): Promise<Page<Meeting>> {
     const filters: FilterQuery<MeetingEntity> = { user: userId };
     if (opts.status) filters.status = opts.status;
-    if (opts.search) filters.$or = [{ title: `%${opts.search}%` }];
+    if (opts.search) {
+      filters.$or = [
+        { title: { $like: `%${opts.search}%` } },
+        { notes: { $like: `%${opts.search}%` } },
+      ];
+    }
 
     const [entities, totalCount] = await this.dbSource.findAndCount(filters, {
       limit: opts.limit,

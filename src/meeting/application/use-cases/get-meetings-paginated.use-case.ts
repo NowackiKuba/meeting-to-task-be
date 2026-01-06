@@ -21,6 +21,7 @@ export class GetMeetingsPaginatedUseCase {
         limit: opts.limit ?? 20,
         offset: opts.offset ?? 0,
         status: opts.status,
+        search: opts.search,
       },
       userId,
     );

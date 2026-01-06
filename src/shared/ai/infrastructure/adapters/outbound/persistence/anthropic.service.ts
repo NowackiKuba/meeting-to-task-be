@@ -23,7 +23,7 @@ export class AnthropicService implements IAiService {
       });
 
       const completion = await this.anthropic.completions.create({
-        model: 'claude-3-7-sonnet-20250219',
+        model: 'claude-sonnet-4-5',
         prompt: processedPrompt,
         max_tokens_to_sample: 256,
       });
@@ -46,20 +46,31 @@ export class AnthropicService implements IAiService {
         return context[varName] !== undefined ? context[varName] : match;
       });
 
-      const completion = await this.anthropic.completions.create({
-        model: 'claude-3-7-sonnet-20250219',
-        prompt: `${processedPrompt}\n\nIMPORTANT: Return ONLY valid JSON. Do not add extra text, markdown, or explanations. Escape all quotes properly.`,
-        max_tokens_to_sample: 4000, // Increased for longer responses
+      const completion = await this.anthropic.messages.create({
+        model: 'claude-sonnet-4-0',
+        messages: [
+          {
+            role: 'user',
+            content: `${processedPrompt}\n\nIMPORTANT: Return ONLY valid JSON. Do not add extra text, markdown, or explanations. Escape all quotes properly.`,
+          },
+        ],
+        max_tokens: 4000,
         temperature: 0, // Reduce variability for more consistent JSON
       });
 
-      const aiReply = completion.completion;
+      // Safely extract the text content from content blocks (Anthropic API)
+      // Find the first block with type 'text' and use its text
+      const contentBlock = completion.content.find(
+        (b: any) => b.type === 'text' && typeof b.text === 'string',
+      );
+
+      const aiReply = contentBlock ? (contentBlock as any).text : '';
 
       // Parse the JSON result with fallback recovery
       return parseJsonWithFallback<T>(aiReply, 3);
     } catch (error) {
       throw new Error(
-        `OpenAI API error (formatted): ${error.message || error}`,
+        `Anthropic API error (formatted): ${error.message || error}`,
       );
     }
   }
