@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateMeetingDto } from '@meeting/application/dto/create-meeting';
 import { UpdateMeetingDto } from '@meeting/application/dto/update-meeting';
@@ -23,6 +24,7 @@ import { AuthUser } from '@auth/domain/interfaces/auth-user.interface';
 import { GetMeetingTasksUseCase } from 'src/task/application/use-cases';
 import { GetTasksPaginatedDto } from 'src/task/application/dto';
 import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.use-case';
+import { SubscriptionLimitsGuard } from 'src/subscription/infrastructure/adapters/inbound/http/guards/subscription-limits.guard';
 
 @Controller('meetings')
 export class MeetingsController {
@@ -37,6 +39,7 @@ export class MeetingsController {
   ) {}
 
   @Post()
+  @UseGuards(SubscriptionLimitsGuard)
   async create(@Body() body: CreateMeetingDto, @User() user: AuthUser) {
     return this.createMeeting.handle(body, user.id);
   }

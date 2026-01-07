@@ -10,6 +10,9 @@ import {
 import { UserMapper } from './infrastructure/mappers/user.mapper';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { UserEntity } from './infrastructure/entities/user.entity';
+import { ResetLimitsSchedule } from './infrastructure/adapters/outbound/schedules/reset-limits.schedule';
+import { SubscriptionRepository } from 'src/subscription/infrastructure/adapters/outbound/persistence/subscription.repository';
+import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subscription.mapper';
 
 @Module({
   imports: [MikroOrmModule.forFeature([UserEntity])],
@@ -19,9 +22,15 @@ import { UserEntity } from './infrastructure/entities/user.entity';
     GetUserByEmailUseCase,
     GetUserByIdUseCase,
     UserMapper,
+    SubscriptionMapper,
+    ResetLimitsSchedule,
     {
       provide: Token.UserRepository,
       useClass: UserRepository,
+    },
+    {
+      provide: Token.SubscriptionRepository,
+      useClass: SubscriptionRepository,
     },
   ],
   exports: [Token.UserRepository, CreateUserUseCase, GetUserByEmailUseCase],

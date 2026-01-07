@@ -26,6 +26,8 @@ import { TaskMapper } from 'src/task/infrastructure/mappers/task.mapper';
 import { UserMapper } from 'src/user/infrastructure/mappers/user.mapper';
 import { UserRepository } from 'src/user/infrastructure/adapters/outbound/persistence/user.repository';
 import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.use-case';
+import { SubscriptionRepository } from 'src/subscription/infrastructure/adapters/outbound/persistence/subscription.repository';
+import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subscription.mapper';
 
 @Module({
   imports: [
@@ -51,6 +53,7 @@ import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.
     AnthropicService,
     ExportTasksUseCase,
     TaskMapper,
+    SubscriptionMapper,
     UserMapper,
     {
       provide: Token.MeetingRepository,
@@ -59,6 +62,10 @@ import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.
     {
       provide: Token.UserRepository,
       useClass: UserRepository,
+    },
+    {
+      provide: Token.SubscriptionRepository,
+      useClass: SubscriptionRepository,
     },
     {
       provide: Token.TaskRepository,

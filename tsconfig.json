@@ -28,7 +28,8 @@
       "@subscription/*": ["src/subscription/*"],
       "@payment/*": ["src/payment/*"],
       "@integration/*": ["src/integration/*"],
-      "@usage/*": ["src/usage/*"]
+      "@usage/*": ["src/usage/*"],
+      "@feedback/*": ["src/feedback/*"]
     }
   }
 }

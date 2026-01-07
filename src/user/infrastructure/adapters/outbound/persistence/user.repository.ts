@@ -47,4 +47,10 @@ export class UserRepository implements IUserRepository {
 
     return user ? this.mapper.toDomain(user) : null;
   }
+
+  async getAll(): Promise<User[]> {
+    const users = await this.dbSource.findAll();
+
+    return users.map((user) => this.mapper.toDomain(user));
+  }
 }

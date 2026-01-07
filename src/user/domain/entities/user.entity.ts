@@ -8,6 +8,7 @@ export type UserProto = {
   meetingsProcessedThisMonth?: number;
   meetingsLimit?: number;
   billingCycleStart?: Date;
+  lastLimitsResetAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -21,6 +22,7 @@ export type UserJSON = {
   meetingsProcessedThisMonth: number;
   meetingsLimit: number;
   billingCycleStart?: Date;
+  lastLimitsResetAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -35,6 +37,7 @@ export class User {
   private _meetingsProcessedThisMonth: number;
   private _meetingsLimit: number;
   private _billingCycleStart?: Date;
+  private _lastLimitsResetAt?: Date;
   private readonly _createdAt?: Date;
   private readonly _updatedAt?: Date;
 
@@ -48,6 +51,7 @@ export class User {
     this._meetingsProcessedThisMonth = proto.meetingsProcessedThisMonth ?? 0;
     this._meetingsLimit = proto.meetingsLimit ?? 5;
     this._billingCycleStart = proto.billingCycleStart;
+    this._lastLimitsResetAt = proto.lastLimitsResetAt;
     this._createdAt = proto.createdAt;
     this._updatedAt = proto.updatedAt;
   }
@@ -88,6 +92,10 @@ export class User {
     return this._billingCycleStart;
   }
 
+  get lastLimitsResetAt(): Date | undefined {
+    return this._lastLimitsResetAt;
+  }
+
   setPassword(hash: string) {
     this._password = hash;
   }
@@ -105,6 +113,7 @@ export class User {
     this._meetingsProcessedThisMonth = 0;
     this._meetingsLimit = limit;
     this._billingCycleStart = new Date();
+    this._lastLimitsResetAt = new Date();
   }
 
   setStripeCustomerId(id: string) {

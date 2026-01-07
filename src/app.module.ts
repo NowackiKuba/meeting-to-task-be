@@ -29,6 +29,7 @@ import { IntegrationsModule } from '@integration/integrations.module';
 import { UsageModule } from '@usage/usage.module';
 import { PacketsModule } from './packet/packets.module';
 import { StripeModule } from './stripe/stripe.module';
+import { FeedbackModule } from './feedback/feedback.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { StripeModule } from './stripe/stripe.module';
     }),
     AuthModule,
     StripeModule,
+    FeedbackModule,
     ConfigModule,
     PacketsModule,
     BullModule.forRootAsync({

@@ -11,6 +11,7 @@ export type UserEntityProps = {
   stripeCustomerId?: string | null;
   meetingsProcessedThisMonth?: number;
   meetingsLimit?: number;
+  lastLimitsResetAt?: Date;
   billingCycleStart?: Date;
   subscription?: SubscriptionEntity;
   seatAccess?: SubscriptionEntity;
@@ -48,6 +49,8 @@ export class UserEntity extends BaseEntity implements UserEntityProps {
   subscription?: SubscriptionEntity;
   @ManyToOne(() => SubscriptionEntity, { nullable: true })
   seatAccess?: SubscriptionEntity;
+  @Property({ type: 'date', nullable: true })
+  lastLimitsResetAt?: Date;
 
   constructor(props: UserEntityProps) {
     super();
@@ -61,6 +64,7 @@ export class UserEntity extends BaseEntity implements UserEntityProps {
       props.meetingsProcessedThisMonth ?? this.meetingsProcessedThisMonth;
     this.meetingsLimit = props.meetingsLimit ?? this.meetingsLimit;
     this.billingCycleStart = props.billingCycleStart;
+    this.lastLimitsResetAt = props.lastLimitsResetAt;
   }
 
   //
