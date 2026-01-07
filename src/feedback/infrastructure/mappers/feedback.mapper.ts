@@ -16,12 +16,12 @@ export class FeedbackMapper {
     });
   }
 
-  toEntity(feedback: Feedback): FeedbackEntity {
+  toEntity(feedback: Feedback, user: UserEntity): FeedbackEntity {
     const feedbackJSON = feedback.toJSON();
 
     return new FeedbackEntity({
       ...feedbackJSON,
-      user: this.em.getReference(UserEntity, feedbackJSON.userId),
+      user,
     });
   }
 }

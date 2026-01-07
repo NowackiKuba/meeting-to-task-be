@@ -11,6 +11,7 @@ import { TaskEntity } from '@task/infrastructure/entities/task.entity';
 import { SubscriptionEntity } from 'src/subscription/infrastructure/entities/subscription.entity';
 import { PacketEntity } from 'src/packet/infrastructure/entities/packet.entity';
 import { PaymentEntity } from 'src/payment/infrastructure/entities/payment.entity';
+import { FeedbackEntity } from 'src/feedback/infrastructure/entities/feedback.entity';
 
 const logger = new Logger('MikroORM');
 
@@ -37,6 +38,7 @@ export const config = defineConfig({
     SubscriptionEntity,
     PacketEntity,
     PaymentEntity,
+    FeedbackEntity,
   ],
   extensions: [SeedManager, Migrator],
   logger: logger.log.bind(logger),

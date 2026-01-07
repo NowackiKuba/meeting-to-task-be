@@ -5,4 +5,3 @@ import { CREATE_FEEDBACK_SCHEMA } from './schema';
 export class CreateFeedbackDto extends createZodDto(
   extendApi(CREATE_FEEDBACK_SCHEMA),
 ) {}
-

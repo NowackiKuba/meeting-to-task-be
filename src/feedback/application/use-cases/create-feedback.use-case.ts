@@ -25,4 +25,3 @@ export class CreateFeedbackUseCase {
     return this.feedbackRepository.create(feedback);
   }
 }
-

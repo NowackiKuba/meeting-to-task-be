@@ -1,4 +1,4 @@
-import { ManyToOne, Property } from '@mikro-orm/core';
+import { Entity, ManyToOne, Property } from '@mikro-orm/core';
 import { BaseEntity } from 'src/orm/entities/base.entity';
 import { UserEntity } from 'src/user/infrastructure/entities/user.entity';
 import { generateUUID } from 'src/utils/generate-uuid';
@@ -11,6 +11,7 @@ export type FeedbackEntityProps = {
   body?: string;
 };
 
+@Entity({ tableName: 'feedbacks' })
 export class FeedbackEntity extends BaseEntity implements FeedbackEntityProps {
   @ManyToOne(() => UserEntity)
   user: UserEntity;
@@ -24,6 +25,7 @@ export class FeedbackEntity extends BaseEntity implements FeedbackEntityProps {
   constructor(props: FeedbackEntityProps) {
     super();
     this.id = props.id ?? generateUUID();
+    this.user = props.user;
     this.rate = props.rate;
     this.area = props.area;
     this.body = props.body;

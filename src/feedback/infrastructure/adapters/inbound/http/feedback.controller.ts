@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
   CreateFeedbackDto,
   GetFeedbacksPaginatedDto,
@@ -27,10 +20,7 @@ export class FeedbackController {
   ) {}
 
   @Post()
-  async create(
-    @Body() body: CreateFeedbackDto,
-    @User() user: AuthUser,
-  ) {
+  async create(@Body() body: CreateFeedbackDto, @User() user: AuthUser) {
     return this.createFeedbackUseCase.handle(body, user.id);
   }
 
@@ -44,4 +34,3 @@ export class FeedbackController {
     return this.getFeedbackByIdUseCase.handle(id);
   }
 }
-

@@ -13,4 +13,3 @@ export const CREATE_FEEDBACK_SCHEMA = z.strictObject({
 
 export type CreateFeedbackInput = z.input<typeof CREATE_FEEDBACK_SCHEMA>;
 export type CreateFeedbackTransformed = z.output<typeof CREATE_FEEDBACK_SCHEMA>;
-
