@@ -1,6 +1,7 @@
 import { Entity, ManyToOne, OneToOne, Property, Unique } from '@mikro-orm/core';
 import { BaseEntity } from 'src/orm/entities/base.entity';
 import { SubscriptionEntity } from 'src/subscription/infrastructure/entities/subscription.entity';
+import { CreditEntity } from 'src/credit/infratructure/entities/credit.entity';
 
 export type UserEntityProps = {
   id?: string;
@@ -15,6 +16,7 @@ export type UserEntityProps = {
   billingCycleStart?: Date;
   subscription?: SubscriptionEntity;
   seatAccess?: SubscriptionEntity;
+  credit?: CreditEntity;
 };
 
 @Entity({ tableName: 'users' })
@@ -49,6 +51,9 @@ export class UserEntity extends BaseEntity implements UserEntityProps {
   subscription?: SubscriptionEntity;
   @ManyToOne(() => SubscriptionEntity, { nullable: true })
   seatAccess?: SubscriptionEntity;
+  // Inverse side; FK lives on credits.user_id
+  @OneToOne(() => CreditEntity, { mappedBy: 'user', nullable: true })
+  credit?: CreditEntity;
   @Property({ type: 'date', nullable: true })
   lastLimitsResetAt?: Date;
 

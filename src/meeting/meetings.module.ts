@@ -28,10 +28,26 @@ import { UserRepository } from 'src/user/infrastructure/adapters/outbound/persis
 import { ExportTasksUseCase } from 'src/task/application/use-cases/export-tasks.use-case';
 import { SubscriptionRepository } from 'src/subscription/infrastructure/adapters/outbound/persistence/subscription.repository';
 import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subscription.mapper';
+import {
+  DeductCreditUseCase,
+  RefundCreditUseCase,
+  CreateCreditHistoryUseCase,
+} from 'src/credit/application/use-cases';
+import { CreditRepository } from 'src/credit/infratructure/adapters/outbound/persistence/credit.repository';
+import { CreditMapper } from 'src/credit/infratructure/mappers/credit.mapper';
+import { CreditHistoryRepository } from 'src/credit/infratructure/adapters/outbound/persistence/credit-history.repository';
+import { CreditHistoryMapper } from 'src/credit/infratructure/mappers/credit-history.mapper';
+import { CreditEntity } from 'src/credit/infratructure/entities/credit.entity';
+import { CreditHistoryEntity } from 'src/credit/infratructure/entities/credit-history.entity';
 
 @Module({
   imports: [
-    MikroOrmModule.forFeature([MeetingEntity, UserEntity]),
+    MikroOrmModule.forFeature([
+      MeetingEntity,
+      UserEntity,
+      CreditEntity,
+      CreditHistoryEntity,
+    ]),
     BullModule.registerQueue({
       name: 'meeting-queue',
     }),
@@ -55,6 +71,11 @@ import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subs
     TaskMapper,
     SubscriptionMapper,
     UserMapper,
+    CreditMapper,
+    CreditHistoryMapper,
+    DeductCreditUseCase,
+    RefundCreditUseCase,
+    CreateCreditHistoryUseCase,
     {
       provide: Token.MeetingRepository,
       useClass: MeetingRepository,
@@ -70,6 +91,14 @@ import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subs
     {
       provide: Token.TaskRepository,
       useClass: TaskRepository,
+    },
+    {
+      provide: Token.CreditRepository,
+      useClass: CreditRepository,
+    },
+    {
+      provide: Token.CreditHistoryRepository,
+      useClass: CreditHistoryRepository,
     },
   ],
   exports: [Token.MeetingRepository],

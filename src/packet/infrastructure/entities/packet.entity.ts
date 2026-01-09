@@ -17,6 +17,7 @@ export type PacketEntityProps = {
   isActive?: boolean;
   description?: string;
   sortOrder?: number;
+  creditsIncluded?: number;
   iconUrl?: string; // url to an icon/image for the packet
   trialDays?: number; // number of free trial days for this packet
   highlight?: boolean; // whether to visually highlight/recommend this packet
@@ -49,6 +50,8 @@ export class PacketEntity extends BaseEntity implements PacketEntityProps {
   iconUrl?: string;
   @Property({ type: 'int', nullable: true })
   trialDays?: number;
+  @Property({ type: 'int', nullable: true, default: 0 })
+  creditsIncluded?: number;
   @Property({ type: 'boolean', default: false })
   highlight?: boolean;
   @ManyToOne(() => SubscriptionEntity, { nullable: true })
@@ -58,6 +61,7 @@ export class PacketEntity extends BaseEntity implements PacketEntityProps {
     super();
     this.id = props.id ?? generateUUID();
     this.name = props.name;
+    this.creditsIncluded = props.creditsIncluded;
     this.tier = props.tier;
     this.monthlyAmount = props.monthlyAmount;
     this.yearlyAmount = props.yearlyAmount;

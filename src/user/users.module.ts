@@ -13,6 +13,9 @@ import { UserEntity } from './infrastructure/entities/user.entity';
 import { ResetLimitsSchedule } from './infrastructure/adapters/outbound/schedules/reset-limits.schedule';
 import { SubscriptionRepository } from 'src/subscription/infrastructure/adapters/outbound/persistence/subscription.repository';
 import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subscription.mapper';
+import { CreditMapper } from 'src/credit/infratructure/mappers/credit.mapper';
+import { CreditRepository } from 'src/credit/infratructure/adapters/outbound/persistence/credit.repository';
+import { CreateCreditUseCase } from 'src/credit/application/use-cases';
 
 @Module({
   imports: [MikroOrmModule.forFeature([UserEntity])],
@@ -24,15 +27,27 @@ import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subs
     UserMapper,
     SubscriptionMapper,
     ResetLimitsSchedule,
+    CreditMapper,
+    CreateCreditUseCase,
     {
       provide: Token.UserRepository,
       useClass: UserRepository,
+    },
+    {
+      provide: Token.CreditRepository,
+      useClass: CreditRepository,
     },
     {
       provide: Token.SubscriptionRepository,
       useClass: SubscriptionRepository,
     },
   ],
-  exports: [Token.UserRepository, CreateUserUseCase, GetUserByEmailUseCase],
+  exports: [
+    Token.UserRepository,
+    CreateUserUseCase,
+    GetUserByEmailUseCase,
+    CreateCreditUseCase,
+  ],
 })
 export class UsersModule {}
+//

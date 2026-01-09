@@ -16,6 +16,7 @@ export type PacketProto = {
   isActive?: boolean;
   description?: string;
   sortOrder?: number;
+  creditsIncluded?: number;
   iconUrl?: string;
   trialDays?: number;
   highlight?: boolean;
@@ -39,6 +40,7 @@ export type PacketJSON = {
   iconUrl?: string;
   trialDays?: number;
   highlight?: boolean;
+  creditsIncluded?: number;
   subscriptions?: Subscription[];
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +61,7 @@ export class Packet {
   private readonly _iconUrl?: string;
   private readonly _trialDays?: number;
   private readonly _highlight?: boolean;
+  private readonly _creditsIncluded?: number;
   private readonly _subscriptions?: Subscription[];
   private readonly _createdAt?: Date;
   private readonly _updatedAt?: Date;
@@ -78,6 +81,7 @@ export class Packet {
     this._iconUrl = proto.iconUrl;
     this._trialDays = proto.trialDays;
     this._highlight = proto.highlight;
+    this._creditsIncluded = proto.creditsIncluded;
     this._subscriptions = proto.subscriptions;
     this._createdAt = proto.createdAt;
     this._updatedAt = proto.updatedAt;
@@ -125,6 +129,9 @@ export class Packet {
   get highlight(): boolean {
     return this._highlight;
   }
+  get creditsIncluded(): number {
+    return this._creditsIncluded;
+  }
   get subscriptions(): Subscription[] {
     return this._subscriptions;
   }
@@ -151,6 +158,7 @@ export class Packet {
       iconUrl: this._iconUrl,
       trialDays: this._trialDays,
       highlight: this._highlight,
+      creditsIncluded: this._creditsIncluded,
       subscriptions: this._subscriptions,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,

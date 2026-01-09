@@ -1,3 +1,5 @@
+import { Credit } from 'src/credit/domain/entities/credit.entity';
+
 export type UserProto = {
   id?: string;
   email: string;
@@ -9,6 +11,8 @@ export type UserProto = {
   meetingsLimit?: number;
   billingCycleStart?: Date;
   lastLimitsResetAt?: Date;
+  credits?: Credit;
+  creditsId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -23,6 +27,8 @@ export type UserJSON = {
   meetingsLimit: number;
   billingCycleStart?: Date;
   lastLimitsResetAt?: Date;
+  credits?: Credit;
+  creditsId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -38,6 +44,8 @@ export class User {
   private _meetingsLimit: number;
   private _billingCycleStart?: Date;
   private _lastLimitsResetAt?: Date;
+  private readonly _credits?: Credit;
+  private readonly _creditsId: string;
   private readonly _createdAt?: Date;
   private readonly _updatedAt?: Date;
 
@@ -52,6 +60,8 @@ export class User {
     this._meetingsLimit = proto.meetingsLimit ?? 5;
     this._billingCycleStart = proto.billingCycleStart;
     this._lastLimitsResetAt = proto.lastLimitsResetAt;
+    this._credits = proto.credits;
+    this._creditsId = proto.creditsId;
     this._createdAt = proto.createdAt;
     this._updatedAt = proto.updatedAt;
   }
@@ -96,6 +106,13 @@ export class User {
     return this._lastLimitsResetAt;
   }
 
+  get credits(): Credit {
+    return this._credits;
+  }
+  get creditsId(): string {
+    return this._creditsId;
+  }
+
   setPassword(hash: string) {
     this._password = hash;
   }
@@ -109,11 +126,11 @@ export class User {
     this._meetingsProcessedThisMonth += 1;
   }
 
-  resetUsage(limit: number) {
+  resetUsage(limit: number, billingCycleStart?: Date) {
     this._meetingsProcessedThisMonth = 0;
     this._meetingsLimit = limit;
-    this._billingCycleStart = new Date();
-    this._lastLimitsResetAt = new Date();
+    this._billingCycleStart = billingCycleStart ?? new Date();
+    this._lastLimitsResetAt = billingCycleStart ?? new Date();
   }
 
   setStripeCustomerId(id: string) {
@@ -134,6 +151,9 @@ export class User {
       meetingsProcessedThisMonth: this._meetingsProcessedThisMonth,
       meetingsLimit: this._meetingsLimit,
       billingCycleStart: this._billingCycleStart,
+      creditsId: this._creditsId,
+      credits: this._credits,
+      lastLimitsResetAt: this._lastLimitsResetAt,
       createdAt: this._createdAt,
       updatedAt: this._updatedAt,
     };

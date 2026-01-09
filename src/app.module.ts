@@ -30,6 +30,7 @@ import { UsageModule } from '@usage/usage.module';
 import { PacketsModule } from './packet/packets.module';
 import { StripeModule } from './stripe/stripe.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { CreditsModule } from './credit/credits.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { FeedbackModule } from './feedback/feedback.module';
     AuthModule,
     StripeModule,
     FeedbackModule,
+    CreditsModule,
     ConfigModule,
     PacketsModule,
     BullModule.forRootAsync({

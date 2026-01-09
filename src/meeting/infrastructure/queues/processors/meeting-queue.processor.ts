@@ -16,6 +16,11 @@ import {
 import { EXTRACTION_PROMPT } from 'src/shared/ai/domain/prompts/extraction-prompt';
 import { MikroORM, RequestContext } from '@mikro-orm/core';
 import { IUserRepository } from 'src/user/domain/ports/user.repository.port';
+import {
+  DeductCreditUseCase,
+  RefundCreditUseCase,
+} from 'src/credit/application/use-cases';
+import { NotFoundError, ProcessingError } from 'src/errors';
 
 @Processor('meeting-queue')
 export class MeetingQueueConsumer extends WorkerHost {
@@ -30,6 +35,8 @@ export class MeetingQueueConsumer extends WorkerHost {
     private readonly taskRepository: ITaskRepository,
     @Inject(Token.UserRepository)
     private readonly userRepository: IUserRepository,
+    private readonly deductCreditUseCase: DeductCreditUseCase,
+    private readonly refundCreditUseCase: RefundCreditUseCase,
     private readonly orm: MikroORM,
   ) {
     super();
@@ -66,10 +73,42 @@ export class MeetingQueueConsumer extends WorkerHost {
       `Starting processing for meeting ${data.meetingId} (userId: ${data.userId})`,
     );
 
+    // Track if credit was deducted for this processing attempt
+    let creditDeducted = false;
+
     const user = await this.userRepository.findById(data.userId);
 
     if (!user) {
       throw new Error('User not found');
+    }
+
+    // Check and deduct credit before processing (1 meeting = 1 credit)
+    try {
+      this.logger.log(`Checking and deducting 1 credit for meeting processing...`);
+      await this.deductCreditUseCase.handle(
+        data.userId,
+        1, // 1 credit per meeting
+        'meeting_processing',
+        data.meetingId, // referenceId = meeting ID
+        `Credit deducted for processing meeting ${data.meetingId}`,
+      );
+      creditDeducted = true;
+      this.logger.log(`Successfully deducted 1 credit for meeting ${data.meetingId}`);
+    } catch (error: any) {
+      if (error instanceof NotFoundError || error instanceof ProcessingError) {
+        this.logger.error(
+          `Cannot process meeting ${data.meetingId}: ${error.message}`,
+        );
+        throw new ProcessingError(
+          `Cannot process meeting: ${error.message}`,
+          { meetingId: data.meetingId, userId: data.userId },
+        );
+      }
+      // If it's a different error, log and rethrow
+      this.logger.error(
+        `Unexpected error while deducting credit for meeting ${data.meetingId}: ${error.message}`,
+      );
+      throw error;
     }
 
     const provider =
@@ -267,6 +306,34 @@ export class MeetingQueueConsumer extends WorkerHost {
         `Error processing meeting ${data.meetingId}: ${error.message}`,
         error.stack,
       );
+
+      // Refund credit if it was deducted and processing failed
+      // creditDeducted is captured from outer scope via closure
+      if (creditDeducted) {
+        try {
+          this.logger.log(
+            `Refunding 1 credit for failed meeting ${data.meetingId}...`,
+          );
+          await this.refundCreditUseCase.handle(
+            data.userId,
+            1, // Refund 1 credit
+            'meeting_processing_failed',
+            data.meetingId, // referenceId = meeting ID
+            `Credit refunded due to processing failure for meeting ${data.meetingId}`,
+          );
+          this.logger.log(
+            `Successfully refunded 1 credit for failed meeting ${data.meetingId}`,
+          );
+        } catch (refundError: any) {
+          // Log refund error but don't throw - we still want to mark meeting as failed
+          // This is a critical error that should be investigated/manually handled
+          this.logger.error(
+            `CRITICAL: Failed to refund credit for meeting ${data.meetingId}: ${refundError.message}. User should be manually refunded.`,
+            refundError.stack,
+          );
+        }
+      }
+
       meeting.markFailed(error?.message ?? 'Error processing meeting');
 
       await this.meetingRepository.update(meeting);

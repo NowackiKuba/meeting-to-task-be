@@ -12,6 +12,7 @@ import {
 import { SubscriptionEntity } from 'src/subscription/infrastructure/entities/subscription.entity';
 import { SubscriptionMapper } from 'src/subscription/infrastructure/mappers/subscription.mapper';
 import { Page, paginate } from 'src/utils/pagination';
+import { PacketEntity } from 'src/packet/infrastructure/entities/packet.entity';
 
 @Injectable()
 export class SubscriptionRepository implements ISubscriptionRepository {
@@ -58,10 +59,54 @@ export class SubscriptionRepository implements ISubscriptionRepository {
   }
 
   async update(subscription: Subscription): Promise<void> {
-    await this.dbSource.nativeUpdate(
+    const existingEntity = await this.dbSource.findOne(
       { id: subscription.id },
-      this.mapper.toEntity(subscription),
+      { populate: ['packet'] },
     );
+
+    if (!existingEntity) {
+      throw new Error(`Subscription with id ${subscription.id} not found`);
+    }
+
+    // Update only the properties that can change, not relations
+    const subscriptionJSON = subscription.toJSON();
+    existingEntity.tier = subscriptionJSON.tier;
+    existingEntity.amount = subscriptionJSON.amount;
+    existingEntity.interval = subscriptionJSON.interval;
+    existingEntity.customerId = subscriptionJSON.customerId;
+    existingEntity.cancelAtPeriodEnd = subscriptionJSON.cancelAtPeriodEnd;
+    existingEntity.currentPeriodStart = subscriptionJSON.currentPeriodStart;
+    existingEntity.currentPeriodEnd = subscriptionJSON.currentPeriodEnd;
+    existingEntity.stripeId = subscriptionJSON.stripeId;
+    existingEntity.status = subscriptionJSON.status;
+    existingEntity.trialStart = subscriptionJSON.trialStart;
+    existingEntity.trialEnd = subscriptionJSON.trialEnd;
+    existingEntity.metadata = subscriptionJSON.metadata;
+    existingEntity.renewalType = subscriptionJSON.renewalType;
+    existingEntity.couponId = subscriptionJSON.couponId;
+    existingEntity.paymentMethodId = subscriptionJSON.paymentMethodId;
+    existingEntity.supportSeats = subscriptionJSON.supportSeats;
+    existingEntity.invoiceId = subscriptionJSON.invoiceId;
+    existingEntity.lastPaymentDate = subscriptionJSON.lastPaymentDate;
+    existingEntity.nextPaymentDate = subscriptionJSON.nextPaymentDate;
+    existingEntity.canceledAt = subscriptionJSON.canceledAt;
+    existingEntity.pausedAt = subscriptionJSON.pausedAt;
+    existingEntity.resumedAt = subscriptionJSON.resumedAt;
+    existingEntity.downgradeAt = subscriptionJSON.downgradeAt;
+    existingEntity.upgradeAt = subscriptionJSON.upgradeAt;
+
+    // Update packet relation if packetId changed
+    if (
+      subscriptionJSON.packetId &&
+      existingEntity.packet.id !== subscriptionJSON.packetId
+    ) {
+      existingEntity.packet = this.em.getReference(
+        PacketEntity,
+        subscriptionJSON.packetId,
+      );
+    }
+
+    await this.em.flush();
   }
 
   async getAll(opts: FilterOptions): Promise<Page<Subscription>> {

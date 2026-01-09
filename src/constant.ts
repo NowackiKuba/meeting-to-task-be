@@ -10,6 +10,8 @@ export const Token = {
   PaymentRepository: Symbol('PaymentRepository'),
   IntegrationRepository: Symbol('IntegrationRepository'),
   FeedbackRepository: Symbol('FeedbackRepository'),
+  CreditRepository: Symbol('CreditRepository'),
+  CreditHistoryRepository: Symbol('CreditHistoryRepository'),
   StripeService: Symbol('StripeService'),
   EmailService: Symbol('EmailService'),
   Mailer: Symbol('Mailer'),

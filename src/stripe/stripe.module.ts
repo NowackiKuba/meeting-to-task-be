@@ -19,6 +19,12 @@ import { mailerProvider } from 'src/shared/mailer/infra/adapters/mailer.provider
 import { EmailService } from 'src/shared/mailer/infra/adapters/email.service';
 import { PaymentRepository } from 'src/payment/infrastructure/adapters/outbound/persistence/payment.repository';
 import { PaymentMapper } from 'src/payment/infrastructure/mappers/payment.mapper';
+import { CreditRepository } from 'src/credit/infratructure/adapters/outbound/persistence/credit.repository';
+import { CreditMapper } from 'src/credit/infratructure/mappers/credit.mapper';
+import { CreditHistoryRepository } from 'src/credit/infratructure/adapters/outbound/persistence/credit-history.repository';
+import { CreditHistoryMapper } from 'src/credit/infratructure/mappers/credit-history.mapper';
+import { UpdateCreditUseCase } from 'src/credit/application/use-cases/update-credit.use-case';
+import { CreateCreditHistoryUseCase } from 'src/credit/application/use-cases/create-credit-history.use-case';
 
 @Module({
   imports: [SubscriptionsModule, UsersModule, PaymentsModule],
@@ -31,14 +37,23 @@ import { PaymentMapper } from 'src/payment/infrastructure/mappers/payment.mapper
     SubscriptionMapper,
     UserMapper,
     PacketMapper,
+    CreditMapper,
+    CreditHistoryMapper,
     mailerProvider,
     CreateUserUseCase,
+    UpdateCreditUseCase,
+    CreateCreditHistoryUseCase,
     PaymentMapper,
     { provide: Token.StripeService, useClass: StripeService },
     { provide: Token.SubscriptionRepository, useClass: SubscriptionRepository },
     { provide: Token.UserRepository, useClass: UserRepository },
     { provide: Token.PacketRepository, useClass: PacketRepository },
     { provide: Token.PaymentRepository, useClass: PaymentRepository },
+    { provide: Token.CreditRepository, useClass: CreditRepository },
+    {
+      provide: Token.CreditHistoryRepository,
+      useClass: CreditHistoryRepository,
+    },
     { provide: Token.EmailService, useClass: EmailService },
     //
   ],

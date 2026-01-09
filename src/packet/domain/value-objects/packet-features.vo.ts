@@ -23,25 +23,34 @@ export type PacketFeaturesProps = Record<PacketFeatureKey, PacketFeatureValue>;
 export const PACKET_FEATURES_BY_TIER: Record<PacketTier, PacketFeaturesProps> =
   {
     free: {
-      meetings_per_month: 5,
-      recording_minutes: 300,
-      tasks_per_month: 20,
+      credits_per_month: 5,
+      recording_minutes: 60,
       ai_summaries: false,
       priority_support: false,
+      export_formats: ['csv'],
+      api_access: false,
+      advanced_analytics: false,
+      custom_integrations: false,
     },
     basic: {
-      meetings_per_month: 50,
-      recording_minutes: 3000,
-      tasks_per_month: 200,
+      credits_per_month: 50,
+      recording_minutes: 300,
       ai_summaries: true,
       priority_support: false,
+      export_formats: ['*'],
+      api_access: false,
+      advanced_analytics: false,
+      custom_integrations: false,
     },
     pro: {
-      meetings_per_month: 999999,
-      recording_minutes: 999999,
-      tasks_per_month: 999999,
+      credits_per_month: 200,
+      recording_minutes: 3000,
       ai_summaries: true,
       priority_support: true,
+      export_formats: ['*'],
+      api_access: false,
+      advanced_analytics: false,
+      custom_integrations: false,
     },
   };
 

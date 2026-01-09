@@ -25,6 +25,13 @@ import { ISubscriptionRepository } from 'src/subscription/domain/ports/subscript
 import { IUserRepository } from 'src/user/domain/ports/user.repository.port';
 import { CreateUserUseCase } from 'src/user/application/use-cases';
 import { IPacketRepository } from 'src/packet/domain/ports/packet.repository.port';
+import { UpdateCreditUseCase } from 'src/credit/application/use-cases/update-credit.use-case';
+import { ICreditRepository } from 'src/credit/domain/ports/credit.repository.port';
+import { CreateCreditUseCase } from 'src/credit/application/use-cases/create-credit.use-case';
+import { CreateCreditHistoryUseCase } from 'src/credit/application/use-cases/create-credit-history.use-case';
+import { CreditHistoryType } from 'src/credit/domain/entities/credit-history.entity';
+import { Credit } from 'src/credit/domain/entities/credit.entity';
+import { differenceInMonths } from 'date-fns';
 
 @Injectable()
 export class StripeWebhookService {
@@ -42,7 +49,12 @@ export class StripeWebhookService {
     private readonly userRepository: IUserRepository,
     @Inject(Token.PacketRepository)
     private readonly packetRepository: IPacketRepository,
+    @Inject(Token.CreditRepository)
+    private readonly creditRepository: ICreditRepository,
     private readonly createUserUseCase: CreateUserUseCase,
+    private readonly updateCreditUseCase: UpdateCreditUseCase,
+    private readonly createCreditUseCase: CreateCreditUseCase,
+    private readonly createCreditHistoryUseCase: CreateCreditHistoryUseCase,
   ) {
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
       apiVersion: '2025-10-29.clover',
@@ -157,6 +169,8 @@ export class StripeWebhookService {
   private async handleInvoiceSucceeded(invoice: Stripe.Invoice) {
     this.logger.log(`Invoice succeeded: ${invoice.id}`);
     await this.createOrUpdatePayment(invoice, PaymentStatus.PAID);
+    // Note: Reset logic is handled in handleSubscriptionUpdated to avoid duplicates
+    // when both invoice.payment_succeeded and customer.subscription.updated fire
   }
 
   private async handleSubscriptionCreated(subscription: Stripe.Subscription) {
@@ -169,10 +183,38 @@ export class StripeWebhookService {
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     this.logger.log(`Subscription updated: ${subscription.id}`);
+
+    // Get subscription before update to compare billing cycles
+    const dbSubscriptionBefore =
+      await this.subscriptionRepository.getByStripeId(subscription.id);
+    const previousPeriodStart = dbSubscriptionBefore?.currentPeriodStart;
+
+    // Update subscription
     await this.createOrUpdateSubscription({
       stripeSubscriptionId: subscription.id,
       packetId: subscription.metadata?.packetId,
     });
+
+    // Only check for billing cycle change if we had a previous subscription
+    // This prevents duplicate resets on first subscription creation
+    if (previousPeriodStart && dbSubscriptionBefore) {
+      const dbSubscriptionAfter =
+        await this.subscriptionRepository.getByStripeId(subscription.id);
+
+      if (
+        dbSubscriptionAfter &&
+        dbSubscriptionAfter.currentPeriodStart.getTime() !==
+          previousPeriodStart.getTime()
+      ) {
+        this.logger.log(
+          `Billing cycle changed for subscription ${subscription.id}. Previous: ${previousPeriodStart.toISOString()}, New: ${dbSubscriptionAfter.currentPeriodStart.toISOString()}`,
+        );
+        await this.resetUserLimitsAndCreditsIfNeeded(
+          dbSubscriptionAfter.userId,
+          dbSubscriptionAfter.currentPeriodStart,
+        );
+      }
+    }
   }
 
   private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
@@ -293,6 +335,12 @@ export class StripeWebhookService {
         ? await this.subscriptionRepository.getById(existingId)
         : await this.subscriptionRepository.getByStripeId(stripeSubscriptionId);
 
+    // Get old packet to compare credits if subscription exists
+    let oldPacket = null;
+    if (existing) {
+      oldPacket = await this.packetRepository.getById(existing.packetId);
+    }
+
     const subscription = new Subscription({
       ...(existing ? existing.toJSON() : {}),
       id: existing?.id,
@@ -318,25 +366,44 @@ export class StripeWebhookService {
 
     // Keep user tier in sync with subscription tier
     await this.syncUserTier(userId, packet.tier as SubscriptionTier);
+
+    // Update credits if packet/tier changed (upgrade/downgrade)
+    await this.updateCreditsOnTierChange(
+      userId,
+      oldPacket?.creditsIncluded ?? 0,
+      packet.creditsIncluded ?? 0,
+      subscription.id,
+    );
   }
 
   private async createOrUpdatePayment(
     invoice: Stripe.Invoice,
     statusOverride?: PaymentStatus,
   ) {
+    // Extract subscription ID from invoice
     const subscriptionId =
-      invoice.lines.data[0].parent.subscription_item_details.subscription.toString();
+      invoice.parent.subscription_details.subscription.toString();
+
+    // Get database subscription if exists
     const dbSubscription = subscriptionId
       ? await this.subscriptionRepository.getByStripeId(subscriptionId)
       : null;
 
-    const existingPaymentByMeta =
-      invoice.metadata?.paymentId &&
-      (await this.paymentRepository.getById(invoice.metadata.paymentId));
+    // Check for existing payment - try metadata paymentId first, then providerId (invoice ID)
+    // This ensures idempotency if webhook is called multiple times
+    let existingPayment = null;
 
-    const existingPayment =
-      existingPaymentByMeta ??
-      (await this.paymentRepository.getByProviderId(invoice.id));
+    if (invoice.metadata?.paymentId) {
+      existingPayment = await this.paymentRepository.getById(
+        invoice.metadata.paymentId,
+      );
+    }
+
+    if (!existingPayment) {
+      existingPayment = await this.paymentRepository.getByProviderId(
+        invoice.id,
+      );
+    }
 
     const gross = invoice.amount_paid ?? invoice.total ?? 0;
     const net = gross / 1.23;
@@ -386,6 +453,251 @@ export class StripeWebhookService {
 
     user.updateTier(tier, meetingsLimit);
     await this.userRepository.update(user);
+  }
+
+  /**
+   * Resets user limits and credits if billing cycle has changed.
+   * This replaces the cron job logic from reset-limits.schedule.ts
+   * Idempotent: Won't reset if already reset for this billing period
+   */
+  private async resetUserLimitsAndCreditsIfNeeded(
+    userId: string,
+    currentPeriodStart: Date,
+  ) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      this.logger.warn(`User ${userId} not found for limit/credit reset.`);
+      return;
+    }
+
+    // Check if billing cycle has changed
+    // Compare current period start with user's last reset or billing cycle start
+    const lastResetAt = user.lastLimitsResetAt ?? user.billingCycleStart;
+
+    // More precise check: if billingCycleStart matches currentPeriodStart (same day), reset already done
+    if (user.billingCycleStart) {
+      const billingCycleStartDate = new Date(user.billingCycleStart);
+      billingCycleStartDate.setHours(0, 0, 0, 0);
+      const currentPeriodStartDate = new Date(currentPeriodStart);
+      currentPeriodStartDate.setHours(0, 0, 0, 0);
+
+      if (
+        billingCycleStartDate.getTime() === currentPeriodStartDate.getTime()
+      ) {
+        this.logger.debug(
+          `User ${userId} already reset for this billing period. Billing cycle start: ${user.billingCycleStart.toISOString()}, Current period: ${currentPeriodStart.toISOString()}`,
+        );
+        return;
+      }
+    }
+
+    const shouldReset =
+      !lastResetAt || differenceInMonths(currentPeriodStart, lastResetAt) >= 1;
+
+    if (!shouldReset) {
+      this.logger.debug(
+        `User ${userId} not eligible for reset. Last reset: ${lastResetAt}, Current period: ${currentPeriodStart}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Resetting limits and credits for user ${userId}. Last reset: ${lastResetAt}, Current period: ${currentPeriodStart}`,
+    );
+
+    // Get subscription to determine limits
+    const subscription = await this.subscriptionRepository.getByUserId(userId);
+    let usageLimit: number;
+    let creditsIncluded = 0;
+
+    if (subscription) {
+      const packet = await this.packetRepository.getById(subscription.packetId);
+      if (packet) {
+        const tasksPerMonth = Number(packet.features.get('tasks_per_month'));
+        usageLimit = isNaN(tasksPerMonth) ? 5 : tasksPerMonth;
+        creditsIncluded = packet.creditsIncluded ?? 0;
+      } else {
+        usageLimit = 5;
+      }
+    } else {
+      usageLimit = 5;
+    }
+
+    // Reset user limits - use currentPeriodStart to match subscription billing cycle
+    user.resetUsage(usageLimit, currentPeriodStart);
+    await this.userRepository.update(user);
+    this.logger.log(
+      `Reset usage limits for user ${userId} to ${usageLimit} with billing cycle start: ${currentPeriodStart.toISOString()}`,
+    );
+
+    // Handle credit reset/creation
+    if (creditsIncluded > 0) {
+      let credit = await this.creditRepository.getByUserId(userId);
+
+      if (!credit) {
+        // Create new credit account
+        try {
+          credit = await this.createCreditUseCase.handle(
+            {
+              balance: creditsIncluded,
+              baseBalance: creditsIncluded,
+            },
+            userId,
+          );
+          this.logger.log(
+            `Created credit account for user ${userId} with balance ${creditsIncluded}`,
+          );
+        } catch (error: any) {
+          this.logger.warn(
+            `Failed to create credit for user ${userId}: ${error.message}`,
+          );
+          return;
+        }
+      } else {
+        // Reset existing credit
+        try {
+          await this.createCreditHistoryUseCase.handle({
+            creditId: credit.id,
+            amount: credit.baseBalance - credit.balance,
+            type: CreditHistoryType.RESET,
+            balanceBefore: credit.balance,
+            balanceAfter: credit.baseBalance,
+            reason: 'billing_cycle_reset',
+            description: `Credit reset for new billing cycle starting ${currentPeriodStart.toISOString()}`,
+            metadata: {
+              subscriptionId: subscription?.id,
+              currentPeriodStart: currentPeriodStart.toISOString(),
+            },
+          });
+          this.logger.log(
+            `Reset credit for user ${userId} from ${credit.balance} to ${credit.baseBalance}`,
+          );
+        } catch (error: any) {
+          this.logger.error(
+            `Failed to reset credit for user ${userId}: ${error.message}`,
+          );
+        }
+      }
+
+      // Update baseBalance if creditsIncluded changed (reload credit after reset)
+      const updatedCredit = await this.creditRepository.getByUserId(userId);
+      if (updatedCredit && updatedCredit.baseBalance !== creditsIncluded) {
+        await this.updateCreditUseCase.handle(
+          {
+            baseBalance: creditsIncluded,
+            balance: creditsIncluded,
+            resetReason: 'billing_cycle_update',
+            lastResetAt: currentPeriodStart,
+          },
+          updatedCredit.id,
+        );
+        this.logger.log(
+          `Updated credit baseBalance for user ${userId} from ${updatedCredit.baseBalance} to ${creditsIncluded}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Updates credits when subscription tier changes (upgrade/downgrade)
+   * Adds difference to balance and updates baseBalance
+   */
+  private async updateCreditsOnTierChange(
+    userId: string,
+    oldCreditsIncluded: number,
+    newCreditsIncluded: number,
+    subscriptionId: string,
+  ) {
+    // Only process if credits changed
+    if (oldCreditsIncluded === newCreditsIncluded) {
+      return;
+    }
+
+    const creditDifference = newCreditsIncluded - oldCreditsIncluded;
+    this.logger.log(
+      `Credits changed for user ${userId}: ${oldCreditsIncluded} -> ${newCreditsIncluded} (difference: ${creditDifference})`,
+    );
+
+    let credit = await this.creditRepository.getByUserId(userId);
+
+    if (!credit) {
+      // Create new credit account if user doesn't have one
+      if (newCreditsIncluded > 0) {
+        try {
+          credit = await this.createCreditUseCase.handle(
+            {
+              balance: newCreditsIncluded,
+              baseBalance: newCreditsIncluded,
+            },
+            userId,
+          );
+          this.logger.log(
+            `Created credit account for user ${userId} with ${newCreditsIncluded} credits`,
+          );
+        } catch (error: any) {
+          this.logger.warn(
+            `Failed to create credit for user ${userId}: ${error.message}`,
+          );
+        }
+      }
+      return;
+    }
+
+    // Update credits: add difference to balance and update baseBalance
+    const balanceBefore = credit.balance;
+    const baseBalanceBefore = credit.baseBalance;
+
+    // Add credit difference to balance
+    if (creditDifference > 0) {
+      // Upgrade: add credits
+      await this.createCreditHistoryUseCase.handle({
+        creditId: credit.id,
+        amount: creditDifference,
+        type: CreditHistoryType.ADD,
+        balanceBefore: balanceBefore,
+        balanceAfter: balanceBefore + creditDifference,
+        reason: 'tier_upgrade',
+        description: `Credits added due to tier upgrade (${creditDifference} credits)`,
+        metadata: {
+          subscriptionId,
+          oldCreditsIncluded,
+          newCreditsIncluded,
+          creditDifference,
+        },
+      });
+      this.logger.log(
+        `Added ${creditDifference} credits to user ${userId} balance (${balanceBefore} -> ${balanceBefore + creditDifference})`,
+      );
+    } else if (creditDifference < 0) {
+      // Downgrade: we don't remove credits, just update baseBalance
+      // Balance stays the same, only baseBalance is reduced
+      this.logger.log(
+        `Tier downgrade for user ${userId}. Balance unchanged: ${balanceBefore}, baseBalance: ${baseBalanceBefore} -> ${newCreditsIncluded}`,
+      );
+    }
+
+    // Update baseBalance to new value
+    // Note: Don't pass balance here - it was already updated via createCreditHistoryUseCase above
+    // If we pass balance, updateCreditUseCase will create another credit history entry with amount=balance,
+    // which would double-add the credits!
+    const updatedCredit = await this.creditRepository.getByUserId(userId);
+    if (updatedCredit && updatedCredit.baseBalance !== newCreditsIncluded) {
+      // Directly update only baseBalance without creating history entry
+      // We'll use the repository directly to avoid the history entry creation
+      const creditToUpdate = await this.creditRepository.getById(
+        updatedCredit.id,
+      );
+      if (creditToUpdate) {
+        const updatedCreditEntity = new Credit({
+          ...creditToUpdate.toJSON(),
+          baseBalance: newCreditsIncluded,
+        });
+        await this.creditRepository.update(updatedCreditEntity);
+        this.logger.log(
+          `Updated credit baseBalance for user ${userId} from ${baseBalanceBefore} to ${newCreditsIncluded}`,
+        );
+      }
+    }
   }
 
   private mapStripeStatus(
